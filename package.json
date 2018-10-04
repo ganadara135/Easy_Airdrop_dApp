@@ -1,0 +1,15 @@
+{
+  "name": "Easy_Airdrop_dApp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "server.js",
+  "author": "Ararat Tonoyan",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [],
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.3"
+  }
+}
