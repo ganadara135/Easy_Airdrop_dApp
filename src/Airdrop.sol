@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity 0.5.3;
 
 import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "github.com/OpenZeppelin/openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
@@ -12,7 +12,7 @@ contract Airdrop is Ownable {
    * @param _addresses address[] addresses to airdrop
    * @param _values address[] values for each address
    */
-  function doAirdrop(address[] _addresses, uint256[] _values) public onlyOwner returns (uint256) {
+  function doAirdrop(address[] memory _addresses, uint256 [] memory _values) public onlyOwner returns (uint256) {
     uint256 i = 0;
 
     while (i < _addresses.length) {
