@@ -1,15 +1,54 @@
 {
-  "name": "Easy_Airdrop_dApp",
+  "name": "AirdropDapp",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
-  "author": "Ararat Tonoyan",
-  "scripts": {
-    "start": "node server.js"
+  "description": "Easy and clear airdrop dapp",
+  "main": "app.js",
+  "directories": {
+    "lib": "lib"
   },
-  "keywords": [],
-  "license": "ISC",
+  "scripts": {
+    "start": "nodemon --exec babel-node app"
+  },
+  "repository": {
+    "type": "git",
+    "url": ""
+  },
+  "keywords": [
+    "Node.JS",
+    "Web3",
+    "Infura",
+    "Ethereum",
+    "Dapp",
+    "Aidrop"
+  ],
+  "babel": {
+    "presets": [
+      "@babel/preset-env"
+    ]
+  },
+  "author": "Ararat Tonoyan",
+  "license": "MIT",
   "dependencies": {
-    "express": "^4.16.3"
+    "body-parser": "^1.18.3",
+    "ethereumjs-tx": "^1.3.6",
+    "express": "^4.16.3",
+    "express-jwt": "^5.3.1",
+    "node-cron": "^2.0.3",
+    "pg": "^7.9.0",
+    "pg-hstore": "^2.3.2",
+    "request": "^2.88.0",
+    "request-promise": "^4.2.4",
+    "sequelize": "^5.1.0",
+    "sha256": "^0.2.0",
+    "web3": "^1.0.0-beta.34"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.1.5",
+    "@babel/core": "^7.1.6",
+    "@babel/node": "^7.0.0",
+    "@babel/preset-env": "^7.1.6",
+    "install": "^0.12.2",
+    "nodemon": "^1.18.10",
+    "npm": "^6.9.0"
   }
 }
