@@ -7,14 +7,22 @@ App = {
         if (typeof web3 !== 'undefined') {
             window.web3 = new Web3(web3.currentProvider)
         } else {
-            web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/v3/94890e5bd20040fe861e18da383bb492"))
+            web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/v3/94890e5bd20040fe861e18da383bb492"))
         }
 
         return App.initContracts()
     },
 
     initContracts: async () => {
-        App.airdropAddress = "0x7af250981432eeda34a20fc47372971b26684942"
+        App.networkId = await web3.eth.net.getId()
+
+        if (App.networkId !== 1) {
+            $("#submit").attr("disabled", true)
+            alert ("Please switch your Metamask node to Mainnet");
+            return
+        }
+
+        App.airdropAddress = "0x94080Ed2F72967554D2a6Bf1DD6f678e498DdB29"
         App.airdropABI = [{"constant":false,"inputs":[{"name":"addresses","type":"address[]"},{"name":"values","type":"uint256[]"}],"name":"doAirdrop","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"token","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"}]
         App.airdropInstance = new web3.eth.Contract(App.airdropABI, App.airdropAddress)
 
@@ -26,9 +34,9 @@ App = {
     },
 
     initVariables: async () => {
-        App.networkId = await web3.eth.net.getId()
+        App.ownerAddress = "0xB5869587CA6E239345f75C28d3b8Ee23da812759"
         App.account = await web3.eth.getAccounts().then(accounts => accounts[0])
-        App.allowance = web3.utils.fromWei(await App.tokenInstance.methods.allowance(App.account, App.airdropAddress).call(), 'ether')
+        App.allowance = web3.utils.fromWei(await App.tokenInstance.methods.allowance(App.ownerAddress, App.airdropAddress).call(), 'ether')
         if (localStorage.getItem("transactions") === null) {
             localStorage.setItem("transactions", JSON.stringify([]))
         }
@@ -37,7 +45,8 @@ App = {
 
     showAllowance: () => {
         const amount = App.allowance
-        $('#allowance').text(amount > 0 ? amount : '0. (Please allow more tokens for ' + App.airdropAddress + ' contract.)')
+        $('#allowance').text(amount > 0 ? amount + " EVOT" : '0. (Please allow more tokens for ' + App.airdropAddress + ' contract.)')
+        $('#owner-wallet').text(App.ownerAddress)
     },
 
     showTransactions: () => {
@@ -145,7 +154,6 @@ App = {
         let amounts = []
         let receivers = []
         let totalAmount = 0
-        let validationPassed = true
 
         try {
             // Replacing and creating 'receivers' array
@@ -160,51 +168,35 @@ App = {
                     if(web3.utils.isAddress(address)) {
                         receivers.push(address)
                     } else {
-                        alert('Founded wrong ETH address, please check it \n\n' + address)
-                        validationPassed = false
+                        throw ('Founded wrong ETH address, please check it \n\n' + address)
                     }
                 }
             })
 
             // Replacing and creating 'amounts' array
-            $('#amounts').val().split(',').forEach((value, i) => {
-                if (/\S/.test(value)) {
-                    value = value.replace(/[^a-z0-9\s]/gi, '').replace(/[_\s]/g, '')
-                    value = parseInt(value)
-
-                    // Calculating total sum of 'amounts' array items
-                    totalAmount += value
-
-                    value = new web3.utils.BN(value).toString()
-                    value = web3.utils.toWei(value, 'ether')
-
-                    // Checking if there is 0 in amounts, cause transaction with 0 amount does not make sense
-                    if(value !== 0) {
-                        amounts.push(value)
-                    } else {
-                        alert('Founded  number 0 in amounts, please remove it')
-                        validationPassed = false
-                    }
-                }
-            })
+            amounts = $('#amounts').val().split(',').map(value => {
+                if (Number(value) !== 0) {
+                       return Number(value)
+                   } else {
+                        throw ('Founded  number 0 in amounts, please remove it');
+                   }
+               })
 
             // Checking arrays length and validities
             if(receivers.length == 0 || amounts.length == 0 || receivers.length != amounts.length || receivers.length > 150 || amounts.length > 150) {
-                alert('Issue with receivers/amount values')
-                validationPassed = false
+                throw ('Issue with receivers/amount values')
             }
 
-            if (!validationPassed) {
-                return
-            }
+
+            // Calculating total sum of 'amounts' array items
+            totalAmount = parseFloat(amounts.reduce((a, b) => a + b).toFixed(2))
 
             // If allowance tokens more than amounts sum then continue
             if(App.allowance >= totalAmount) {
                 // Calling the method from airdrop smart contract
-                App.airdropInstance.methods.doAirdrop(receivers, amounts).send({from: App.account})
+                App.airdropInstance.methods.doAirdrop(receivers, amounts).send({ from: App.account })
                 .on("transactionHash", hash => {
                     App.alertInReload(true)
-
                     const newTx = {
                         hash,
                         status: "Pending",
@@ -231,15 +223,13 @@ App = {
                 })
                 .on("error", error => {
                     App.alertInReload(false)
-                    console.error(error)
-                    alert("Tx was failed")
+                    throw ("Tx was failed")
                 })
             } else {
-                alert('You havent enough tokens for airdrop, please approve more tokens, restart the page and try again.')
+                throw ('You havent enough tokens for airdrop, please approve more tokens, restart the page and try again.')
             }
         } catch (error) {
-            console.error(error)
-            alert("Error, please check your data and console log for more details")
+            alert(error)
         }
     }
 }
