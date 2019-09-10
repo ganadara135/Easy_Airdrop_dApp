@@ -1,20 +1,46 @@
 App = {
     init: async () => {
-        return App.initWeb3()
+        return await App.initWeb3()
     },
 
-    initWeb3: () => {
-        if (typeof web3 !== 'undefined') {
-            window.web3 = new Web3(web3.currentProvider)
-        } else {
-            web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/v3/94890e5bd20040fe861e18da383bb492"))
+    initWeb3: async () => {
+        try {
+            const provider = await App.getProviderInstance()
+            if (provider) {
+                App.web3 = new Web3(provider)
+            } else {
+                App.web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/v3/94890e5bd20040fe861e18da383bb492"))
+            }
+            return App.initContracts()
+        } catch (error) {
+            alert("Enable to access to Metamask")
+            console.log(error)
+        }
+    },
+
+    getProviderInstance: async () => {
+        // 1. Try getting modern provider
+        const { ethereum } = window
+        if (ethereum) {
+            try {
+                await ethereum.enable()
+                return ethereum
+            } catch (error) {
+                throw new Error("User denied Metamask access")
+            }
         }
 
-        return App.initContracts()
+        // 2. Try getting legacy provider
+        const { web3 } = window
+        if (web3 && web3.currentProvider) {
+            return web3.currentProvider
+        }
+
+        return null
     },
 
     initContracts: async () => {
-        App.networkId = await web3.eth.net.getId()
+        App.networkId = await App.web3.eth.net.getId()
 
         if (App.networkId !== 1) {
             $("#submit").attr("disabled", true)
@@ -24,19 +50,19 @@ App = {
 
         App.airdropAddress = "0x94080Ed2F72967554D2a6Bf1DD6f678e498DdB29"
         App.airdropABI = [{"constant":false,"inputs":[{"name":"addresses","type":"address[]"},{"name":"values","type":"uint256[]"}],"name":"doAirdrop","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"token","outputs":[{"name":"","type":"address"}],"payable":false,"stateMutability":"view","type":"function"}]
-        App.airdropInstance = new web3.eth.Contract(App.airdropABI, App.airdropAddress)
+        App.airdropInstance = new App.web3.eth.Contract(App.airdropABI, App.airdropAddress)
 
         App.tokenAddress = await App.airdropInstance.methods.token().call()
         App.tokenABI = [{"constant":false,"inputs":[{"name":"spender","type":"address"},{"name":"value","type":"uint256"}],"name":"approve","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"from","type":"address"},{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"who","type":"address"}],"name":"balanceOf","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"name":"to","type":"address"},{"name":"value","type":"uint256"}],"name":"transfer","outputs":[{"name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"name":"owner","type":"address"},{"name":"spender","type":"address"}],"name":"allowance","outputs":[{"name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"anonymous":false,"inputs":[{"indexed":true,"name":"from","type":"address"},{"indexed":true,"name":"to","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"name":"owner","type":"address"},{"indexed":true,"name":"spender","type":"address"},{"indexed":false,"name":"value","type":"uint256"}],"name":"Approval","type":"event"}],
-        App.tokenInstance = new web3.eth.Contract(App.tokenABI, App.tokenAddress)
+        App.tokenInstance = new App.web3.eth.Contract(App.tokenABI, App.tokenAddress)
 
         return App.initVariables()
     },
 
     initVariables: async () => {
         App.ownerAddress = "0xB5869587CA6E239345f75C28d3b8Ee23da812759"
-        App.account = await web3.eth.getAccounts().then(accounts => accounts[0])
-        App.allowance = web3.utils.fromWei(await App.tokenInstance.methods.allowance(App.ownerAddress, App.airdropAddress).call(), 'ether')
+        App.account = await App.web3.eth.getAccounts().then(accounts => accounts[0])
+        App.allowance = App.web3.utils.fromWei(await App.tokenInstance.methods.allowance(App.ownerAddress, App.airdropAddress).call(), 'ether')
         if (localStorage.getItem("transactions") === null) {
             localStorage.setItem("transactions", JSON.stringify([]))
         }
@@ -162,10 +188,10 @@ App = {
                     address = address.replace(/[^a-z0-9\s]/gi, '').replace(/[_\s]/g, '')
 
                     // Checksuming the addresses
-                    address = web3.utils.toChecksumAddress(address)
+                    address = App.web3.utils.toChecksumAddress(address)
 
                     // Checking if address is valid
-                    if(web3.utils.isAddress(address)) {
+                    if(App.web3.utils.isAddress(address)) {
                         receivers.push(address)
                     } else {
                         throw ('Founded wrong ETH address, please check it \n\n' + address)
